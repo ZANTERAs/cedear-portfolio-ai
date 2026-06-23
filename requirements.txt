@@ -1,0 +1,9 @@
+# CEDEAR Heat Finder - third-party dependencies
+# Install with:  pip install -r requirements.txt
+numpy
+pandas
+yfinance
+matplotlib
+
+# Optional - only needed to render PDF pages to PNG for previews
+# PyMuPDF
