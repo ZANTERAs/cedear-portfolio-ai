@@ -1,0 +1,27 @@
+# ── Python ────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.Python
+
+# ── Virtual environments ──────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── Generated reports / data (re-created every run) ───────
+# If you DO want a sample report tracked in the repo,
+# comment out the matching line below.
+cedear_heat_report.pdf
+cedear_heat_result.json
+cedear_portfolio_report.pdf
+cedear_portfolio_result.json
+page*_check.png
+p4_*.png
+
+# ── OS / editor cruft ─────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
