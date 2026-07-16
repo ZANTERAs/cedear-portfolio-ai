@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CEDEAR Heat Finder - Dashboard</title>
+<style>
+:root{
+  --page:#f2f4f8; --surface:#ffffff; --surface-2:#f6f8fc; --surface-3:#eef2f9;
+  --ink:#0b0b0b; --ink-2:#52514e; --muted:#8a8a8a;
+  --grid:#e6e9f1; --border:rgba(11,11,11,.10);
+  --accent:#1F3864; --accent-2:#2E75B6;
+  --good-bg:#d8f3d8; --good-ink:#0a7d0a; --warn-bg:#fbe6cf; --warn-ink:#a05a08;
+  --bad-bg:#f7d6d6; --bad-ink:#b02525; --star:#e8a91e;
+  --shadow:0 1px 2px rgba(11,11,11,.05),0 6px 20px rgba(11,11,11,.06);
+}
+.dark{
+  --page:#0d0f13; --surface:#171a20; --surface-2:#1d2129; --surface-3:#222732;
+  --ink:#f4f5f7; --ink-2:#c3c2b7; --muted:#8a8a8a;
+  --grid:#282d38; --border:rgba(255,255,255,.12);
+  --accent:#8fb3ec; --accent-2:#5b9be0;
+  --good-bg:#123a1a; --good-ink:#4fd06a; --warn-bg:#3d2a12; --warn-ink:#e6a24b;
+  --bad-bg:#3d1a1a; --bad-ink:#f07070; --star:#f0bd45;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.45);
+}
+@media (prefers-color-scheme:dark){
+  :root:not(.light){
+    --page:#0d0f13; --surface:#171a20; --surface-2:#1d2129; --surface-3:#222732;
+    --ink:#f4f5f7; --ink-2:#c3c2b7; --muted:#8a8a8a;
+    --grid:#282d38; --border:rgba(255,255,255,.12);
+    --accent:#8fb3ec; --accent-2:#5b9be0;
+    --good-bg:#123a1a; --good-ink:#4fd06a; --warn-bg:#3d2a12; --warn-ink:#e6a24b;
+    --bad-bg:#3d1a1a; --bad-ink:#f07070; --star:#f0bd45;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.45);
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--page);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14px;line-height:1.45}
+.wrap{max-width:1160px;margin:0 auto;padding:22px 20px 60px}
+.num{font-variant-numeric:tabular-nums}
+a{color:var(--accent-2)}
+
+header.top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.title h1{margin:0;font-size:24px;letter-spacing:-.02em}
+.title .sub{color:var(--ink-2);margin-top:4px}
+.title .meta{color:var(--muted);font-size:12px;margin-top:6px}
+.theme-btn{background:var(--surface);border:1px solid var(--border);color:var(--ink);
+  border-radius:9px;padding:8px 12px;cursor:pointer;box-shadow:var(--shadow);font-size:13px}
+.theme-btn:hover{background:var(--surface-2)}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
+.stat .k{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+.stat .v{font-size:26px;font-weight:650;margin-top:4px}
+.stat .v small{font-size:13px;font-weight:500;color:var(--ink-2)}
+
+.tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--border);margin-bottom:18px}
+.tab{background:none;border:0;border-bottom:2px solid transparent;color:var(--ink-2);
+  padding:10px 14px;cursor:pointer;font-size:14px;font-weight:550;border-radius:6px 6px 0 0}
+.tab:hover{background:var(--surface-2);color:var(--ink)}
+.tab.active{color:var(--accent-2);border-bottom-color:var(--accent-2)}
+.panel[hidden]{display:none}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:18px 18px 20px;box-shadow:var(--shadow);margin-bottom:18px}
+.card h2{margin:0 0 4px;font-size:17px}
+.card .hint{color:var(--muted);font-size:12.5px;margin:0 0 16px}
+
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin:2px 0 16px}
+.legend .li{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-2)}
+.dot{width:11px;height:11px;border-radius:3px;flex:0 0 auto}
+.dot.round{border-radius:50%}
+
+/* leaderboard */
+.lb-row{display:grid;grid-template-columns:26px 66px 1fr 190px 46px;align-items:center;gap:10px;
+  padding:7px 4px;border-bottom:1px solid var(--grid)}
+.lb-row:last-child{border-bottom:0}
+.lb-rank{color:var(--muted);font-size:12px;text-align:right}
+.lb-tk{font-weight:650}
+.lb-nm{color:var(--ink-2);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:7px}
+.lb-bar{display:flex;height:16px;border-radius:5px;overflow:hidden;background:var(--surface-3);gap:2px}
+.lb-seg{height:100%}
+.lb-total{font-weight:700;text-align:right}
+
+/* portfolio */
+.pf-grid{display:grid;grid-template-columns:280px 1fr;gap:22px;align-items:start}
+@media(max-width:720px){.pf-grid{grid-template-columns:1fr}}
+.donut-wrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+.pf-list{width:100%}
+.pf-item{display:grid;grid-template-columns:20px 62px 1fr 116px 52px;gap:9px;align-items:center;
+  padding:6px 2px;border-bottom:1px solid var(--grid);font-size:13px}
+.pf-item:last-child{border-bottom:0}
+.wbar{height:9px;border-radius:5px;background:var(--surface-3);overflow:hidden}
+.wbar>i{display:block;height:100%;border-radius:5px}
+
+/* table */
+.tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.search{flex:1;min-width:180px;background:var(--surface-2);border:1px solid var(--border);
+  color:var(--ink);border-radius:9px;padding:9px 12px;font-size:13px}
+.count{color:var(--muted);font-size:12.5px}
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:820px}
+thead th{position:sticky;top:0;background:var(--accent);color:#fff;font-weight:600;
+  text-align:right;padding:9px 10px;white-space:nowrap;cursor:pointer;user-select:none}
+thead th.l{text-align:left}
+thead th:hover{background:#274a86}
+thead th .ar{opacity:.5;font-size:10px;margin-left:3px}
+tbody td{padding:7px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--grid)}
+tbody td.l{text-align:left}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr.pf{background:color-mix(in srgb,var(--accent-2) 8%,transparent)}
+tbody tr.pf:hover{background:color-mix(in srgb,var(--accent-2) 14%,transparent)}
+.sctag{display:inline-flex;align-items:center;gap:6px}
+.star{color:var(--star)}
+.cell-good{background:var(--good-bg);color:var(--good-ink);font-weight:650;border-radius:5px}
+.cell-warn{background:var(--warn-bg);color:var(--warn-ink);font-weight:650;border-radius:5px}
+.cell-bad{background:var(--bad-bg);color:var(--bad-ink);font-weight:700;border-radius:5px}
+.pill{display:inline-block;padding:1px 7px;border-radius:20px;font-size:11.5px;font-weight:600}
+
+/* bubble */
+.svg-box{width:100%;overflow-x:auto}
+svg text{fill:var(--ink-2)}
+.bx-grid{stroke:var(--grid);stroke-width:1}
+.bx-axis{stroke:var(--border);stroke-width:1}
+.bx-lab{fill:var(--muted);font-size:11px}
+.bx-tk{fill:var(--ink);font-size:9px;font-weight:600;pointer-events:none}
+
+#tip{position:fixed;z-index:50;display:none;pointer-events:none;background:var(--surface);
+  border:1px solid var(--border);border-radius:9px;box-shadow:var(--shadow);
+  padding:8px 10px;font-size:12px;max-width:240px}
+#tip b{color:var(--ink)}
+#tip .r{color:var(--ink-2)}
+footer{color:var(--muted);font-size:11.5px;margin-top:26px;text-align:center;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="title">
+      <h1>CEDEAR Heat Finder</h1>
+      <div class="sub" id="subMeth"></div>
+      <div class="meta" id="subDate"></div>
+    </div>
+    <button class="theme-btn" id="themeBtn">Tema</button>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-p="lb">Leaderboard</button>
+    <button class="tab" data-p="pf">Cartera</button>
+    <button class="tab" data-p="tb">Fundamentales</button>
+    <button class="tab" data-p="mp">Mapa</button>
+  </div>
+
+  <section class="panel" id="p-lb">
+    <div class="card">
+      <h2>Leaderboard - Top 20 por Heat Score</h2>
+      <p class="hint">Cada barra descompone el puntaje en sus 5 factores. Pasa el cursor por un segmento para ver el detalle.</p>
+      <div class="legend" id="lbLegend"></div>
+      <div id="lbRows"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-pf" hidden>
+    <div class="card">
+      <h2>Cartera recomendada</h2>
+      <p class="hint">Top 20 ponderado por score (softmax, 2%-15% por posicion). Color por sector.</p>
+      <div class="pf-grid">
+        <div class="donut-wrap"><div class="svg-box" id="donut"></div><div class="legend" id="pfLegend"></div></div>
+        <div class="pf-list" id="pfList"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-tb" hidden>
+    <div class="card">
+      <h2>Datos fundamentales</h2>
+      <p class="hint">Toda la universo analizada. Clic en una columna para ordenar. Buscar por ticker o empresa.</p>
+      <div class="tools">
+        <input class="search" id="search" placeholder="Buscar ticker o empresa...">
+        <span class="count" id="tbCount"></span>
+      </div>
+      <div class="table-wrap"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+      <div class="legend" style="margin-top:14px">
+        <span class="li"><span class="dot" style="background:var(--good-bg)"></span>Verde: 5-25% bajo el maximo (pullback sano)</span>
+        <span class="li"><span class="dot" style="background:var(--warn-bg)"></span>Naranja: &le;3% del maximo (pegado al maximo)</span>
+        <span class="li"><span class="dot" style="background:var(--bad-bg)"></span>Rojo: RSI &ge; 70 (sobrecomprado)</span>
+        <span class="li"><span class="star">&#9733;</span> En cartera</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-mp" hidden>
+    <div class="card">
+      <h2>Mapa: Valuacion vs Confianza de Analistas</h2>
+      <p class="hint">Cartera top 20. Eje X = score de valuacion/crecimiento, eje Y = score de analistas, tamano = heat score, color = sector. Arriba-derecha = mejor.</p>
+      <div class="svg-box" id="bubble"></div>
+      <div class="legend" id="mpLegend"></div>
+    </div>
+  </section>
+
+  <footer>
+    Generado localmente por cedear_portfolio_ai.py - datos de Yahoo Finance.<br>
+    Solo para investigacion / uso educativo. No es asesoramiento de inversion.
+  </footer>
+</div>
+<div id="tip"></div>
+
+<script>
+const DATA = {"generatedAt": "2026-07-15T20:04", "methodology": "Heat score 5 factores: Valuacion(30) + Analistas(25) + Earnings(20) + Momentum(15) + Tecnico(10)", "analyzed": 138, "nPortfolio": 20, "factors": [{"key": "val", "label": "Valuacion", "max": 30, "color": "#2E75B6"}, {"key": "ana", "label": "Analistas", "max": 25, "color": "#70AD47"}, {"key": "ear", "label": "Earnings", "max": 20, "color": "#FFC000"}, {"key": "mom", "label": "Momentum", "max": 15, "color": "#ED7D31"}, {"key": "tec", "label": "Tecnico", "max": 10, "color": "#7030A0"}], "sectorColors": {"Tecnologia": "#4472C4", "IA/Semis": "#7030A0", "Finanzas": "#2E75B6", "Salud": "#70AD47", "Consumo": "#FFC000", "Energia": "#E05050", "Mineria": "#808080", "Industria": "#ED7D31", "LatAm": "#00B0F0", "Europa": "#9E480E", "Utilities": "#92D050"}, "rows": [{"rank": 1, "byma": "NVDA", "name": "Nvidia", "sector": "Tecnologia", "total": 93.9, "val": 30.0, "ana": 24.2, "ear": 20.0, "mom": 9.7, "tec": 10.0, "peg": 0.65, "fpe": 16.6, "rev": 0.852, "eps": 2.145, "roe": 1.1429, "consensus": "Compra fuerte", "nanalysts": 58, "upside": 41.9, "pctBelow": 9.8, "rsi": 62.0, "overbought": false, "inPortfolio": true, "weight": 10.29}, {"rank": 2, "byma": "MU", "name": "Micron Technology", "sector": "Tecnologia", "total": 92.5, "val": 30.0, "ana": 23.8, "ear": 20.0, "mom": 12.2, "tec": 6.5, "peg": 0.14, "fpe": 6.0, "rev": 3.457, "eps": 13.685, "roe": 0.6664, "consensus": "Compra fuerte", "nanalysts": 42, "upside": 64.3, "pctBelow": 25.5, "rsi": 40.0, "overbought": false, "inPortfolio": true, "weight": 9.47}, {"rank": 3, "byma": "AVGO", "name": "Broadcom", "sector": "Tecnologia", "total": 88.3, "val": 30.0, "ana": 21.6, "ear": 20.0, "mom": 8.6, "tec": 8.1, "peg": 0.45, "fpe": 20.3, "rev": 0.479, "eps": 0.854, "roe": 0.3728, "consensus": "Compra fuerte", "nanalysts": 45, "upside": 32.8, "pctBelow": 18.0, "rsi": 55.0, "overbought": false, "inPortfolio": true, "weight": 7.37}, {"rank": 4, "byma": "ADI", "name": "Analog Devices", "sector": "Tecnologia", "total": 85.6, "val": 30.0, "ana": 18.6, "ear": 20.0, "mom": 10.5, "tec": 6.5, "peg": 0.72, "fpe": 26.1, "rev": 0.372, "eps": 1.105, "roe": 0.0964, "consensus": "Comprar", "nanalysts": 30, "upside": 16.1, "pctBelow": 12.2, "rsi": 41.0, "overbought": false, "inPortfolio": true, "weight": 6.26}, {"rank": 5, "byma": "VIST", "name": "Vista Energy", "sector": "LatAm", "total": 85.5, "val": 27.0, "ana": 24.1, "ear": 17.0, "mom": 9.4, "tec": 8.1, "peg": null, "fpe": 6.5, "rev": 0.973, "eps": 0.19, "roe": 0.3508, "consensus": "Compra fuerte", "nanalysts": 12, "upside": 49.5, "pctBelow": 17.3, "rsi": 54.0, "overbought": false, "inPortfolio": true, "weight": 6.23}, {"rank": 6, "byma": "BA.C", "name": "Bank of America", "sector": "Finanzas", "total": 81.3, "val": 26.4, "ana": 16.0, "ear": 18.6, "mom": 11.9, "tec": 8.4, "peg": 1.06, "fpe": 11.8, "rev": 0.214, "eps": 0.36, "roe": 0.112, "consensus": "Compra fuerte", "nanalysts": 21, "upside": 6.8, "pctBelow": 0.0, "rsi": 70.0, "overbought": false, "inPortfolio": true, "weight": 4.83}, {"rank": 7, "byma": "META", "name": "Meta Platforms", "sector": "Tecnologia", "total": 80.8, "val": 26.4, "ana": 19.3, "ear": 18.6, "mom": 9.8, "tec": 6.8, "peg": 0.97, "fpe": 18.8, "rev": 0.331, "eps": 0.624, "roe": 0.3293, "consensus": "Compra fuerte", "nanalysts": 58, "upside": 21.3, "pctBelow": 13.5, "rsi": 73.0, "overbought": true, "inPortfolio": true, "weight": 4.69}, {"rank": 8, "byma": "C", "name": "Citigroup", "sector": "Finanzas", "total": 80.1, "val": 30.0, "ana": 18.3, "ear": 16.0, "mom": 9.0, "tec": 6.8, "peg": 0.73, "fpe": 10.7, "rev": 0.159, "eps": 0.561, "roe": 0.0765, "consensus": "Comprar", "nanalysts": 20, "upside": 15.5, "pctBelow": 7.4, "rsi": 36.0, "overbought": false, "inPortfolio": true, "weight": 4.5}, {"rank": 9, "byma": "HWM", "name": "Howmet Aerospace", "sector": "Industria", "total": 79.8, "val": 26.4, "ana": 16.2, "ear": 16.0, "mom": 11.3, "tec": 10.0, "peg": 0.8, "fpe": 46.1, "rev": 0.191, "eps": 0.714, "roe": 0.3382, "consensus": "Compra fuerte", "nanalysts": 20, "upside": 10.6, "pctBelow": 1.4, "rsi": 54.0, "overbought": false, "inPortfolio": true, "weight": 4.42}, {"rank": 10, "byma": "CRM", "name": "Salesforce", "sector": "Tecnologia", "total": 78.8, "val": 30.0, "ana": 23.3, "ear": 16.0, "mom": 5.0, "tec": 4.5, "peg": 0.78, "fpe": 10.8, "rev": 0.133, "eps": 0.522, "roe": 0.1691, "consensus": "Comprar", "nanalysts": 52, "upside": 47.0, "pctBelow": 37.7, "rsi": 65.0, "overbought": false, "inPortfolio": true, "weight": 4.15}, {"rank": 11, "byma": "TEAM", "name": "Atlassian", "sector": "Tecnologia", "total": 78.7, "val": 30.0, "ana": 23.5, "ear": 9.8, "mom": 9.0, "tec": 6.4, "peg": 0.74, "fpe": 14.8, "rev": 0.317, "eps": null, "roe": -0.1929, "consensus": "Comprar", "nanalysts": 30, "upside": 52.4, "pctBelow": 54.8, "rsi": 60.0, "overbought": false, "inPortfolio": true, "weight": 4.13}, {"rank": 12, "byma": "BKNG", "name": "Booking Holdings", "sector": "Finanzas", "total": 78.5, "val": 30.0, "ana": 18.7, "ear": 16.0, "mom": 7.5, "tec": 6.4, "peg": 0.77, "fpe": 14.9, "rev": 0.162, "eps": 2.4, "roe": null, "consensus": "Comprar", "nanalysts": 35, "upside": 22.7, "pctBelow": 20.2, "rsi": 52.0, "overbought": false, "inPortfolio": true, "weight": 4.1}, {"rank": 13, "byma": "NBIS", "name": "Nebius Group", "sector": "IA/Semis", "total": 78.2, "val": 30.0, "ana": 17.2, "ear": 15.2, "mom": 10.9, "tec": 4.9, "peg": 0.63, "fpe": 552.3, "rev": 6.839, "eps": null, "roe": 0.1414, "consensus": "Comprar", "nanalysts": 14, "upside": 22.4, "pctBelow": 30.4, "rsi": 34.0, "overbought": false, "inPortfolio": true, "weight": 4.01}, {"rank": 14, "byma": "LLY", "name": "Eli Lilly", "sector": "Salud", "total": 78.1, "val": 21.6, "ana": 15.3, "ear": 20.0, "mom": 11.2, "tec": 10.0, "peg": 1.54, "fpe": 25.8, "rev": 0.555, "eps": 1.699, "roe": 1.0746, "consensus": "Comprar", "nanalysts": 28, "upside": 8.4, "pctBelow": 6.4, "rsi": 56.0, "overbought": false, "inPortfolio": true, "weight": 3.98}, {"rank": 15, "byma": "TSM", "name": "TSMC", "sector": "Tecnologia", "total": 77.5, "val": 21.6, "ana": 18.9, "ear": 20.0, "mom": 10.5, "tec": 6.5, "peg": 1.36, "fpe": 20.7, "rev": 0.351, "eps": 0.584, "roe": 0.3621, "consensus": "Compra fuerte", "nanalysts": 18, "upside": 18.8, "pctBelow": 12.2, "rsi": 43.0, "overbought": false, "inPortfolio": true, "weight": 3.84}, {"rank": 16, "byma": "GOOGL", "name": "Alphabet", "sector": "Tecnologia", "total": 77.0, "val": 21.6, "ana": 19.0, "ear": 18.6, "mom": 9.8, "tec": 8.1, "peg": 1.41, "fpe": 25.4, "rev": 0.218, "eps": 0.82, "roe": 0.3888, "consensus": "Compra fuerte", "nanalysts": 53, "upside": 16.4, "pctBelow": 7.8, "rsi": 68.0, "overbought": false, "inPortfolio": true, "weight": 3.74}, {"rank": 17, "byma": "MSFT", "name": "Microsoft", "sector": "Tecnologia", "total": 76.3, "val": 26.4, "ana": 24.1, "ear": 15.5, "mom": 5.8, "tec": 4.5, "peg": 1.19, "fpe": 20.4, "rev": 0.183, "eps": 0.234, "roe": 0.3401, "consensus": "Compra fuerte", "nanalysts": 55, "upside": 41.5, "pctBelow": 26.6, "rsi": 66.0, "overbought": false, "inPortfolio": true, "weight": 3.59}, {"rank": 18, "byma": "AMAT", "name": "Applied Materials", "sector": "Tecnologia", "total": 76.1, "val": 21.6, "ana": 16.1, "ear": 15.5, "mom": 12.9, "tec": 10.0, "peg": 1.52, "fpe": 34.6, "rev": 0.114, "eps": 0.335, "roe": 0.3969, "consensus": "Compra fuerte", "nanalysts": 35, "upside": 5.7, "pctBelow": 19.9, "rsi": 49.0, "overbought": false, "inPortfolio": true, "weight": 3.54}, {"rank": 19, "byma": "AMD", "name": "AMD", "sector": "Tecnologia", "total": 75.8, "val": 21.6, "ana": 13.3, "ear": 17.8, "mom": 13.1, "tec": 10.0, "peg": 1.34, "fpe": 39.7, "rev": 0.378, "eps": 0.912, "roe": 0.0806, "consensus": "Compra fuerte", "nanalysts": 47, "upside": -0.7, "pctBelow": 8.9, "rsi": 51.0, "overbought": false, "inPortfolio": true, "weight": 3.48}, {"rank": 20, "byma": "KGC", "name": "Kinross Gold", "sector": "Mineria", "total": 75.3, "val": 26.4, "ana": 23.1, "ear": 20.0, "mom": 1.3, "tec": 4.5, "peg": 1.12, "fpe": 7.4, "rev": 0.608, "eps": 1.339, "roe": 0.3547, "consensus": "Comprar", "nanalysts": 10, "upside": 54.3, "pctBelow": 37.7, "rsi": 50.0, "overbought": false, "inPortfolio": true, "weight": 3.38}, {"rank": 21, "byma": "TTE", "name": "TotalEnergies", "sector": "Energia", "total": 75.3, "val": 30.0, "ana": 17.4, "ear": 12.8, "mom": 7.0, "tec": 8.1, "peg": 0.64, "fpe": 8.5, "rev": 0.034, "eps": 0.571, "roe": 0.1251, "consensus": "Comprar", "nanalysts": 7, "upside": 17.2, "pctBelow": 14.2, "rsi": 55.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 22, "byma": "ARCO", "name": "Arcos Dorados", "sector": "LatAm", "total": 74.8, "val": 30.0, "ana": 16.3, "ear": 13.8, "mom": 6.7, "tec": 8.1, "peg": 0.54, "fpe": 9.5, "rev": 0.129, "eps": 1.594, "roe": 0.3628, "consensus": null, "nanalysts": 9, "upside": 36.1, "pctBelow": 13.1, "rsi": 50.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 23, "byma": "V", "name": "Visa", "sector": "Finanzas", "total": 74.5, "val": 21.6, "ana": 16.4, "ear": 17.0, "mom": 11.1, "tec": 8.4, "peg": 1.53, "fpe": 23.9, "rev": 0.171, "eps": 0.355, "roe": 0.6035, "consensus": "Compra fuerte", "nanalysts": 38, "upside": 13.0, "pctBelow": 1.9, "rsi": 69.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 24, "byma": "ABBV", "name": "AbbVie", "sector": "Salud", "total": 74.2, "val": 30.0, "ana": 15.3, "ear": 6.9, "mom": 11.9, "tec": 10.0, "peg": 0.4, "fpe": 15.0, "rev": 0.124, "eps": -0.462, "roe": null, "consensus": "Comprar", "nanalysts": 28, "upside": 8.8, "pctBelow": 6.5, "rsi": 59.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 25, "byma": "ADS", "name": "Adidas", "sector": "Europa", "total": 73.8, "val": 26.4, "ana": 15.6, "ear": 9.8, "mom": 12.1, "tec": 10.0, "peg": 0.92, "fpe": 15.5, "rev": 0.071, "eps": 0.133, "roe": 0.2292, "consensus": "Comprar", "nanalysts": 29, "upside": 13.7, "pctBelow": 11.4, "rsi": 57.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 26, "byma": "NOW", "name": "ServiceNow", "sector": "Tecnologia", "total": 73.7, "val": 26.4, "ana": 21.4, "ear": 11.4, "mom": 8.1, "tec": 6.4, "peg": 1.05, "fpe": 20.9, "rev": 0.221, "eps": 0.023, "roe": 0.1607, "consensus": "Compra fuerte", "nanalysts": 46, "upside": 34.6, "pctBelow": 47.4, "rsi": 63.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 27, "byma": "AMZN", "name": "Amazon", "sector": "Tecnologia", "total": 73.3, "val": 21.6, "ana": 19.3, "ear": 14.8, "mom": 9.2, "tec": 8.4, "peg": 1.41, "fpe": 25.8, "rev": 0.166, "eps": 0.748, "roe": 0.2429, "consensus": "Compra fuerte", "nanalysts": 61, "upside": 23.3, "pctBelow": 7.3, "rsi": 72.0, "overbought": true, "inPortfolio": false, "weight": null}, {"rank": 28, "byma": "ORCL", "name": "Oracle", "sector": "Tecnologia", "total": 73.0, "val": 30.0, "ana": 23.6, "ear": 17.1, "mom": 0.9, "tec": 1.4, "peg": 0.79, "fpe": 12.1, "rev": 0.206, "eps": 0.219, "roe": 0.5338, "consensus": "Comprar", "nanalysts": 40, "upside": 90.1, "pctBelow": 59.2, "rsi": 24.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 29, "byma": "QCOM", "name": "Qualcomm", "sector": "Tecnologia", "total": 72.9, "val": 30.0, "ana": 15.8, "ear": 12.4, "mom": 9.7, "tec": 4.9, "peg": 0.6, "fpe": 16.1, "rev": -0.035, "eps": 1.73, "roe": 0.3608, "consensus": "Mantener", "nanalysts": 30, "upside": 24.7, "pctBelow": 28.8, "rsi": 36.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 30, "byma": "BABA", "name": "Alibaba", "sector": "Consumo", "total": 72.4, "val": 30.0, "ana": 24.1, "ear": 12.8, "mom": 4.6, "tec": 0.9, "peg": 0.47, "fpe": 12.9, "rev": 0.029, "eps": 1.041, "roe": 0.0922, "consensus": "Compra fuerte", "nanalysts": 39, "upside": 61.9, "pctBelow": 37.3, "rsi": 78.0, "overbought": true, "inPortfolio": false, "weight": null}, {"rank": 31, "byma": "MA", "name": "Mastercard", "sector": "Finanzas", "total": 72.4, "val": 21.6, "ana": 19.2, "ear": 15.5, "mom": 9.3, "tec": 6.8, "peg": 1.62, "fpe": 23.5, "rev": 0.158, "eps": 0.212, "roe": 2.3208, "consensus": "Compra fuerte", "nanalysts": 38, "upside": 20.3, "pctBelow": 10.1, "rsi": 71.0, "overbought": true, "inPortfolio": false, "weight": null}, {"rank": 32, "byma": "GS", "name": "Goldman Sachs", "sector": "Finanzas", "total": 71.7, "val": 21.6, "ana": 7.2, "ear": 20.0, "mom": 12.9, "tec": 10.0, "peg": 1.57, "fpe": 16.4, "rev": 0.425, "eps": 0.923, "roe": 0.1695, "consensus": "Mantener", "nanalysts": 20, "upside": -11.5, "pctBelow": 0.0, "rsi": 63.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 33, "byma": "OXY", "name": "Occidental", "sector": "Energia", "total": 71.7, "val": 26.4, "ana": 16.3, "ear": 12.4, "mom": 8.4, "tec": 8.1, "peg": 1.11, "fpe": 13.9, "rev": -0.083, "eps": 3.156, "roe": 0.0405, "consensus": "Comprar", "nanalysts": 23, "upside": 21.0, "pctBelow": 18.5, "rsi": 60.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 34, "byma": "ANET", "name": "Arista Networks", "sector": "Tecnologia", "total": 71.6, "val": 15.0, "ana": 16.6, "ear": 18.6, "mom": 11.4, "tec": 10.0, "peg": 2.38, "fpe": 38.6, "rev": 0.351, "eps": 0.25, "roe": 0.3152, "consensus": "Compra fuerte", "nanalysts": 27, "upside": 10.8, "pctBelow": 8.0, "rsi": 56.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 35, "byma": "SCHW", "name": "Charles Schwab", "sector": "Finanzas", "total": 71.3, "val": 21.6, "ana": 18.3, "ear": 17.0, "mom": 9.7, "tec": 4.8, "peg": 1.23, "fpe": 13.7, "rev": 0.158, "eps": 0.386, "roe": 0.1908, "consensus": "Comprar", "nanalysts": 19, "upside": 16.8, "pctBelow": 3.5, "rsi": 78.0, "overbought": true, "inPortfolio": false, "weight": null}, {"rank": 36, "byma": "TXN", "name": "Texas Instruments", "sector": "Tecnologia", "total": 70.9, "val": 21.6, "ana": 11.2, "ear": 15.5, "mom": 12.5, "tec": 10.0, "peg": 1.49, "fpe": 31.5, "rev": 0.186, "eps": 0.313, "roe": 0.3235, "consensus": "Comprar", "nanalysts": 32, "upside": -0.4, "pctBelow": 9.4, "rsi": 49.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 37, "byma": "BP", "name": "BP", "sector": "Energia", "total": 70.3, "val": 30.0, "ana": 13.1, "ear": 13.8, "mom": 6.9, "tec": 6.5, "peg": 0.04, "fpe": 10.3, "rev": 0.116, "eps": 4.745, "roe": 0.0584, "consensus": "Mantener", "nanalysts": 16, "upside": 14.8, "pctBelow": 12.2, "rsi": 70.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 38, "byma": "CAAP", "name": "Corp. America AP", "sector": "LatAm", "total": 70.1, "val": 27.0, "ana": 16.3, "ear": 16.4, "mom": 5.5, "tec": 4.9, "peg": null, "fpe": 11.1, "rev": 0.201, "eps": 0.88, "roe": 0.1745, "consensus": null, "nanalysts": 7, "upside": 28.5, "pctBelow": 16.9, "rsi": 39.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 39, "byma": "CVX", "name": "Chevron", "sector": "Energia", "total": 70.0, "val": 30.0, "ana": 18.2, "ear": 5.0, "mom": 8.7, "tec": 8.1, "peg": 0.73, "fpe": 14.5, "rev": 0.023, "eps": -0.445, "roe": 0.0664, "consensus": "Comprar", "nanalysts": 23, "upside": 17.8, "pctBelow": 13.2, "rsi": 67.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 40, "byma": "HAL", "name": "Halliburton", "sector": "Energia", "total": 69.5, "val": 26.4, "ana": 17.8, "ear": 11.2, "mom": 6.0, "tec": 8.1, "peg": 0.9, "fpe": 12.0, "rev": -0.003, "eps": 1.335, "roe": 0.1463, "consensus": "Comprar", "nanalysts": 25, "upside": 24.8, "pctBelow": 17.6, "rsi": 60.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 41, "byma": "LRCX", "name": "Lam Research", "sector": "Tecnologia", "total": 69.2, "val": 15.0, "ana": 16.0, "ear": 18.6, "mom": 11.3, "tec": 8.4, "peg": 2.02, "fpe": 41.5, "rev": 0.238, "eps": 0.408, "roe": 0.6676, "consensus": "Comprar", "nanalysts": 31, "upside": 8.7, "pctBelow": 22.6, "rsi": 43.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 42, "byma": "VRTX", "name": "Vertex Pharma", "sector": "Salud", "total": 68.5, "val": 15.0, "ana": 18.4, "ear": 15.0, "mom": 10.1, "tec": 10.0, "peg": 1.74, "fpe": 22.4, "rev": 0.078, "eps": 0.614, "roe": 0.242, "consensus": "Comprar", "nanalysts": 25, "upside": 16.7, "pctBelow": 9.9, "rsi": 51.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 43, "byma": "VALE", "name": "Vale", "sector": "Mineria", "total": 68.5, "val": 30.0, "ana": 16.9, "ear": 11.4, "mom": 3.6, "tec": 6.5, "peg": 0.3, "fpe": 7.3, "rev": 0.027, "eps": 0.22, "roe": 0.0684, "consensus": "Comprar", "nanalysts": 25, "upside": 16.9, "pctBelow": 17.7, "rsi": 47.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 44, "byma": "NFLX", "name": "Netflix", "sector": "Consumo", "total": 68.0, "val": 21.6, "ana": 23.1, "ear": 17.0, "mom": 1.8, "tec": 4.5, "peg": 1.44, "fpe": 19.2, "rev": 0.162, "eps": 0.864, "roe": 0.4849, "consensus": "Comprar", "nanalysts": 44, "upside": 52.2, "pctBelow": 42.2, "rsi": 55.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 45, "byma": "MRVL", "name": "Marvell Technology", "sector": "Tecnologia", "total": 67.9, "val": 21.6, "ana": 18.9, "ear": 10.7, "mom": 11.7, "tec": 4.9, "peg": 1.33, "fpe": 33.3, "rev": 0.276, "eps": -0.804, "roe": 0.1603, "consensus": "Compra fuerte", "nanalysts": 40, "upside": 22.4, "pctBelow": 34.8, "rsi": 31.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 46, "byma": "CSCO", "name": "Cisco", "sector": "Tecnologia", "total": 67.2, "val": 21.6, "ana": 11.2, "ear": 16.0, "mom": 11.9, "tec": 6.5, "peg": 1.68, "fpe": 23.3, "rev": 0.12, "eps": 0.371, "roe": 0.2523, "consensus": null, "nanalysts": 22, "upside": 13.8, "pctBelow": 13.7, "rsi": 40.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 47, "byma": "BAS", "name": "BASF", "sector": "Europa", "total": 67.0, "val": 30.0, "ana": 13.8, "ear": 7.2, "mom": 7.9, "tec": 8.1, "peg": 0.7, "fpe": 16.3, "rev": -0.03, "eps": 0.166, "roe": 0.0441, "consensus": "Comprar", "nanalysts": 21, "upside": 6.3, "pctBelow": 8.5, "rsi": 54.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 48, "byma": "JPM", "name": "JPMorgan Chase", "sector": "Finanzas", "total": 66.6, "val": 15.0, "ana": 11.4, "ear": 18.6, "mom": 11.6, "tec": 10.0, "peg": 1.76, "fpe": 14.2, "rev": 0.304, "eps": 0.469, "roe": 0.1779, "consensus": "Comprar", "nanalysts": 21, "upside": 2.0, "pctBelow": 0.0, "rsi": 64.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 49, "byma": "JD", "name": "JD.com", "sector": "Consumo", "total": 66.5, "val": 30.0, "ana": 21.4, "ear": 4.0, "mom": 6.4, "tec": 4.8, "peg": 0.72, "fpe": 6.9, "rev": 0.049, "eps": -0.507, "roe": 0.06, "consensus": "Compra fuerte", "nanalysts": 35, "upside": 36.1, "pctBelow": 16.2, "rsi": 86.0, "overbought": true, "inPortfolio": false, "weight": null}, {"rank": 50, "byma": "GILD", "name": "Gilead Sciences", "sector": "Salud", "total": 66.5, "val": 15.0, "ana": 18.4, "ear": 15.0, "mom": 8.0, "tec": 10.0, "peg": 2.14, "fpe": 13.6, "rev": 0.044, "eps": 0.548, "roe": 0.4336, "consensus": "Comprar", "nanalysts": 27, "upside": 20.2, "pctBelow": 14.4, "rsi": 60.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 51, "byma": "B", "name": "Barrick Gold", "sector": "Mineria", "total": 66.3, "val": 27.0, "ana": 18.8, "ear": 12.0, "mom": 3.9, "tec": 4.6, "peg": null, "fpe": 10.9, "rev": 2.44, "eps": null, "roe": 0.1082, "consensus": null, "nanalysts": 5, "upside": 66.3, "pctBelow": 37.8, "rsi": 43.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 52, "byma": "WFC", "name": "Wells Fargo", "sector": "Finanzas", "total": 66.2, "val": 21.6, "ana": 14.8, "ear": 12.0, "mom": 9.4, "tec": 8.3, "peg": 1.56, "fpe": 11.2, "rev": 0.057, "eps": 0.151, "roe": 0.1203, "consensus": "Comprar", "nanalysts": 22, "upside": 12.4, "pctBelow": 8.2, "rsi": 60.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 53, "byma": "SPOT", "name": "Spotify", "sector": "Consumo", "total": 66.1, "val": 21.6, "ana": 18.6, "ear": 14.0, "mom": 5.4, "tec": 6.4, "peg": 1.65, "fpe": 26.9, "rev": 0.082, "eps": 2.224, "roe": 0.3799, "consensus": "Comprar", "nanalysts": 38, "upside": 23.7, "pctBelow": 34.3, "rsi": 65.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 54, "byma": "COP", "name": "ConocoPhillips", "sector": "Energia", "total": 66.0, "val": 26.4, "ana": 20.5, "ear": 3.4, "mom": 7.6, "tec": 8.1, "peg": 0.92, "fpe": 12.4, "rev": -0.053, "eps": -0.202, "roe": 0.1128, "consensus": "Comprar", "nanalysts": 25, "upside": 26.3, "pctBelow": 16.1, "rsi": 60.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 55, "byma": "ADBE", "name": "Adobe", "sector": "Tecnologia", "total": 66.0, "val": 30.0, "ana": 15.5, "ear": 12.0, "mom": 5.5, "tec": 2.9, "peg": 0.61, "fpe": 8.2, "rev": 0.127, "eps": 0.079, "roe": 0.6295, "consensus": "Mantener", "nanalysts": 33, "upside": 21.3, "pctBelow": 39.8, "rsi": 73.0, "overbought": true, "inPortfolio": false, "weight": null}, {"rank": 56, "byma": "MELI", "name": "MercadoLibre", "sector": "LatAm", "total": 65.9, "val": 26.4, "ana": 18.7, "ear": 10.0, "mom": 8.1, "tec": 2.8, "peg": 1.14, "fpe": 31.6, "rev": 0.49, "eps": -0.156, "roe": 0.3126, "consensus": "Comprar", "nanalysts": 24, "upside": 19.6, "pctBelow": 26.6, "rsi": 77.0, "overbought": true, "inPortfolio": false, "weight": null}, {"rank": 57, "byma": "GLOB", "name": "Globant", "sector": "LatAm", "total": 65.5, "val": 30.0, "ana": 21.6, "ear": 8.8, "mom": 0.6, "tec": 4.5, "peg": 0.78, "fpe": 4.8, "rev": -0.007, "eps": 0.25, "roe": 0.052, "consensus": "Comprar", "nanalysts": 22, "upside": 75.3, "pctBelow": 65.7, "rsi": 57.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 58, "byma": "VALE3", "name": "Vale (B3)", "sector": "Mineria", "total": 65.5, "val": 30.0, "ana": 17.4, "ear": 11.4, "mom": 3.7, "tec": 3.0, "peg": 0.3, "fpe": 9.1, "rev": 0.027, "eps": 0.22, "roe": 0.0684, "consensus": "Comprar", "nanalysts": 11, "upside": 17.1, "pctBelow": 17.3, "rsi": 33.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 59, "byma": "XOM", "name": "Exxon Mobil", "sector": "Energia", "total": 64.8, "val": 26.4, "ana": 16.6, "ear": 5.0, "mom": 8.8, "tec": 8.1, "peg": 1.15, "fpe": 13.5, "rev": 0.026, "eps": -0.434, "roe": 0.0987, "consensus": "Comprar", "nanalysts": 21, "upside": 15.8, "pctBelow": 15.2, "rsi": 67.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 60, "byma": "PLTR", "name": "Palantir", "sector": "IA/Semis", "total": 64.8, "val": 15.0, "ana": 20.1, "ear": 20.0, "mom": 4.9, "tec": 4.8, "peg": 1.82, "fpe": 63.9, "rev": 0.847, "eps": 3.25, "roe": 0.3259, "consensus": "Comprar", "nanalysts": 27, "upside": 36.9, "pctBelow": 35.4, "rsi": 71.0, "overbought": true, "inPortfolio": false, "weight": null}, {"rank": 61, "byma": "PDD", "name": "PDD Holdings", "sector": "Consumo", "total": 64.7, "val": 30.0, "ana": 19.9, "ear": 8.1, "mom": 3.7, "tec": 2.9, "peg": 0.79, "fpe": 7.0, "rev": 0.11, "eps": -0.149, "roe": 0.254, "consensus": "Comprar", "nanalysts": 34, "upside": 35.8, "pctBelow": 37.9, "rsi": 73.0, "overbought": true, "inPortfolio": false, "weight": null}, {"rank": 62, "byma": "MO", "name": "Altria Group", "sector": "Consumo", "total": 64.2, "val": 21.6, "ana": 10.1, "ear": 15.0, "mom": 10.9, "tec": 6.5, "peg": 1.64, "fpe": 12.0, "rev": 0.053, "eps": 1.063, "roe": null, "consensus": "Mantener", "nanalysts": 11, "upside": 0.2, "pctBelow": 4.8, "rsi": 43.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 63, "byma": "AXP", "name": "American Express", "sector": "Finanzas", "total": 64.0, "val": 21.6, "ana": 11.2, "ear": 12.9, "mom": 9.9, "tec": 8.3, "peg": 1.67, "fpe": 17.8, "rev": 0.116, "eps": 0.176, "roe": 0.3442, "consensus": "Comprar", "nanalysts": 25, "upside": 4.6, "pctBelow": 6.1, "rsi": 63.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 64, "byma": "UNH", "name": "UnitedHealth", "sector": "Salud", "total": 63.7, "val": 21.6, "ana": 12.8, "ear": 6.9, "mom": 12.4, "tec": 10.0, "peg": 1.47, "fpe": 19.9, "rev": 0.02, "eps": 0.007, "roe": 0.1218, "consensus": "Comprar", "nanalysts": 26, "upside": 1.4, "pctBelow": 3.0, "rsi": 57.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 65, "byma": "SBUX", "name": "Starbucks", "sector": "Consumo", "total": 63.5, "val": 21.6, "ana": 10.8, "ear": 10.4, "mom": 10.7, "tec": 10.0, "peg": 1.42, "fpe": 34.9, "rev": 0.088, "eps": 0.326, "roe": null, "consensus": "Comprar", "nanalysts": 31, "upside": 1.1, "pctBelow": 2.1, "rsi": 55.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 66, "byma": "NEE", "name": "NextEra Energy", "sector": "Utilities", "total": 63.4, "val": 15.0, "ana": 14.8, "ear": 15.0, "mom": 8.6, "tec": 10.0, "peg": 1.93, "fpe": 20.2, "rev": 0.073, "eps": 1.6, "roe": 0.1032, "consensus": "Comprar", "nanalysts": 20, "upside": 11.3, "pctBelow": 8.3, "rsi": 56.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 67, "byma": "DHR", "name": "Danaher", "sector": "Salud", "total": 63.1, "val": 21.6, "ana": 18.8, "ear": 7.9, "mom": 8.4, "tec": 6.4, "peg": 1.27, "fpe": 21.7, "rev": 0.037, "eps": 0.098, "roe": 0.0708, "consensus": "Compra fuerte", "nanalysts": 23, "upside": 20.7, "pctBelow": 16.7, "rsi": 65.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 68, "byma": "EQNR", "name": "Equinor", "sector": "Energia", "total": 62.7, "val": 30.0, "ana": 8.1, "ear": 9.8, "mom": 10.3, "tec": 4.5, "peg": 0.77, "fpe": 9.4, "rev": -0.053, "eps": 0.292, "roe": 0.1236, "consensus": "Mantener", "nanalysts": 6, "upside": -4.7, "pctBelow": 14.5, "rsi": 80.0, "overbought": true, "inPortfolio": false, "weight": null}, {"rank": 69, "byma": "SHEL", "name": "Shell", "sector": "Europa", "total": 62.4, "val": 21.6, "ana": 14.4, "ear": 11.4, "mom": 8.5, "tec": 6.4, "peg": 1.26, "fpe": 9.5, "rev": 0.007, "eps": 0.266, "roe": 0.107, "consensus": "Comprar", "nanalysts": 13, "upside": 12.3, "pctBelow": 9.3, "rsi": 77.0, "overbought": true, "inPortfolio": false, "weight": null}, {"rank": 70, "byma": "ITUB3", "name": "Itau Unibanco (B3)", "sector": "LatAm", "total": 62.0, "val": 21.6, "ana": 10.0, "ear": 10.4, "mom": 10.0, "tec": 10.0, "peg": 1.56, "fpe": null, "rev": -0.021, "eps": 0.114, "roe": 0.2182, "consensus": null, "nanalysts": null, "upside": null, "pctBelow": 2.1, "rsi": 66.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 71, "byma": "SUZB3", "name": "Suzano (B3)", "sector": "LatAm", "total": 61.8, "val": 27.0, "ana": 23.8, "ear": 4.6, "mom": 3.4, "tec": 2.9, "peg": null, "fpe": 5.7, "rev": -0.051, "eps": -0.319, "roe": 0.263, "consensus": "Compra fuerte", "nanalysts": 17, "upside": 56.3, "pctBelow": 29.7, "rsi": 45.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 72, "byma": "SAP", "name": "SAP SE", "sector": "Tecnologia", "total": 61.6, "val": 21.6, "ana": 23.1, "ear": 9.1, "mom": 3.3, "tec": 4.5, "peg": 1.38, "fpe": 16.1, "rev": 0.06, "eps": 0.093, "roe": 0.1635, "consensus": "Comprar", "nanalysts": 12, "upside": 59.7, "pctBelow": 48.6, "rsi": 54.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 73, "byma": "BK", "name": "BNY Mellon", "sector": "Finanzas", "total": 61.1, "val": 21.6, "ana": 11.5, "ear": 17.0, "mom": 6.0, "tec": 5.0, "peg": 1.48, "fpe": 14.2, "rev": 0.134, "eps": 0.418, "roe": 0.1347, "consensus": "Comprar", "nanalysts": 14, "upside": 4.0, "pctBelow": null, "rsi": null, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 74, "byma": "MDT", "name": "Medtronic", "sector": "Salud", "total": 61.0, "val": 21.6, "ana": 17.7, "ear": 9.8, "mom": 5.5, "tec": 6.4, "peg": 1.66, "fpe": 12.6, "rev": 0.099, "eps": 0.183, "roe": 0.0984, "consensus": "Comprar", "nanalysts": 26, "upside": 20.5, "pctBelow": 21.7, "rsi": 53.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 75, "byma": "CAT", "name": "Caterpillar", "sector": "Industria", "total": 60.8, "val": 15.0, "ana": 14.3, "ear": 14.9, "mom": 11.7, "tec": 4.9, "peg": 2.24, "fpe": 30.1, "rev": 0.222, "eps": 0.302, "roe": 0.5133, "consensus": "Comprar", "nanalysts": 26, "upside": 6.1, "pctBelow": 14.1, "rsi": 40.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 76, "byma": "SLB", "name": "Schlumberger", "sector": "Energia", "total": 60.4, "val": 21.6, "ana": 20.8, "ear": 5.0, "mom": 4.9, "tec": 8.1, "peg": 1.64, "fpe": 14.4, "rev": 0.027, "eps": -0.138, "roe": 0.1407, "consensus": "Comprar", "nanalysts": 29, "upside": 28.9, "pctBelow": 18.0, "rsi": 57.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 77, "byma": "BBAS3", "name": "Banco do Brasil (B3)", "sector": "LatAm", "total": 60.2, "val": 30.0, "ana": 15.0, "ear": 3.3, "mom": 5.4, "tec": 6.4, "peg": 0.3, "fpe": 4.3, "rev": -0.218, "eps": -0.544, "roe": 0.0922, "consensus": "Mantener", "nanalysts": 13, "upside": 22.9, "pctBelow": 24.8, "rsi": 57.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 78, "byma": "NEM", "name": "Newmont", "sector": "Mineria", "total": 59.4, "val": 7.5, "ana": 23.2, "ear": 20.0, "mom": 2.5, "tec": 6.2, "peg": 2.78, "fpe": 8.8, "rev": 0.458, "eps": 0.786, "roe": 0.2583, "consensus": "Comprar", "nanalysts": 21, "upside": 42.6, "pctBelow": 27.5, "rsi": 53.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 79, "byma": "ASML", "name": "ASML Holding", "sector": "Tecnologia", "total": 59.3, "val": 7.5, "ana": 16.2, "ear": 13.9, "mom": 11.7, "tec": 10.0, "peg": 2.57, "fpe": 35.0, "rev": 0.132, "eps": 0.192, "roe": 0.5224, "consensus": "Compra fuerte", "nanalysts": 15, "upside": 5.2, "pctBelow": 8.8, "rsi": 53.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 80, "byma": "MBG", "name": "Mercedes-Benz", "sector": "Europa", "total": 59.2, "val": 30.0, "ana": 18.8, "ear": 2.4, "mom": 3.5, "tec": 4.5, "peg": 0.54, "fpe": 6.2, "rev": -0.049, "eps": -0.145, "roe": 0.0528, "consensus": "Comprar", "nanalysts": 23, "upside": 31.8, "pctBelow": 22.0, "rsi": 54.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 81, "byma": "ACN", "name": "Accenture", "sector": "Tecnologia", "total": 59.2, "val": 26.4, "ana": 19.5, "ear": 7.9, "mom": 0.9, "tec": 4.5, "peg": 0.98, "fpe": 9.3, "rev": 0.056, "eps": 0.09, "roe": 0.2441, "consensus": "Comprar", "nanalysts": 25, "upside": 30.7, "pctBelow": 51.5, "rsi": 59.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 82, "byma": "AZN", "name": "AstraZeneca", "sector": "Salud", "total": 58.1, "val": 21.6, "ana": 20.8, "ear": 11.0, "mom": 3.3, "tec": 1.4, "peg": 1.33, "fpe": 18.2, "rev": 0.125, "eps": 0.053, "roe": 0.2348, "consensus": "Comprar", "nanalysts": 10, "upside": 28.2, "pctBelow": 19.3, "rsi": 39.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 83, "byma": "ISRG", "name": "Intuitive Surgical", "sector": "Tecnologia", "total": 57.8, "val": 15.0, "ana": 22.4, "ear": 15.5, "mom": 1.9, "tec": 2.9, "peg": 2.13, "fpe": 33.0, "rev": 0.23, "eps": 0.188, "roe": 0.1723, "consensus": "Comprar", "nanalysts": 30, "upside": 43.5, "pctBelow": 34.4, "rsi": 44.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 84, "byma": "DE", "name": "Deere & Co", "sector": "Industria", "total": 57.8, "val": 21.6, "ana": 14.3, "ear": 3.4, "mom": 10.1, "tec": 8.4, "peg": 1.37, "fpe": 25.8, "rev": -0.111, "eps": -0.085, "roe": 0.1835, "consensus": "Comprar", "nanalysts": 23, "upside": 9.9, "pctBelow": 10.5, "rsi": 47.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 85, "byma": "NKE", "name": "Nike", "sector": "Consumo", "total": 57.4, "val": 21.6, "ana": 16.0, "ear": 11.2, "mom": 4.1, "tec": 4.5, "peg": 1.69, "fpe": 18.1, "rev": -0.011, "eps": 4.283, "roe": 0.2214, "consensus": "Comprar", "nanalysts": 34, "upside": 19.9, "pctBelow": 44.5, "rsi": 55.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 86, "byma": "WEGE3", "name": "WEG (B3)", "sector": "LatAm", "total": 57.3, "val": 26.4, "ana": 16.5, "ear": 5.9, "mom": 5.2, "tec": 3.3, "peg": 1.15, "fpe": 23.9, "rev": -0.061, "eps": -0.058, "roe": 0.3253, "consensus": "Comprar", "nanalysts": 16, "upside": 19.2, "pctBelow": 17.7, "rsi": 32.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 87, "byma": "TMO", "name": "Thermo Fisher", "sector": "Salud", "total": 57.0, "val": 15.0, "ana": 15.7, "ear": 11.0, "mom": 8.5, "tec": 6.8, "peg": 1.74, "fpe": 19.6, "rev": 0.062, "eps": 0.113, "roe": 0.1352, "consensus": "Comprar", "nanalysts": 26, "upside": 10.4, "pctBelow": 16.1, "rsi": 73.0, "overbought": true, "inPortfolio": false, "weight": null}, {"rank": 88, "byma": "CCJ", "name": "Cameco", "sector": "Mineria", "total": 56.9, "val": 15.0, "ana": 22.9, "ear": 14.0, "mom": 2.0, "tec": 3.0, "peg": 1.92, "fpe": 48.1, "rev": 0.071, "eps": 0.875, "roe": 0.096, "consensus": "Comprar", "nanalysts": 12, "upside": 45.9, "pctBelow": 32.2, "rsi": 18.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 89, "byma": "ARM", "name": "ARM Holdings", "sector": "Tecnologia", "total": 56.7, "val": 7.5, "ana": 14.8, "ear": 17.6, "mom": 11.8, "tec": 4.9, "peg": 2.67, "fpe": 89.9, "rev": 0.201, "eps": 0.479, "roe": 0.1195, "consensus": "Comprar", "nanalysts": 37, "upside": 7.9, "pctBelow": 37.0, "rsi": 29.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 90, "byma": "AAPL", "name": "Apple", "sector": "Tecnologia", "total": 56.3, "val": 7.5, "ana": 11.9, "ear": 15.5, "mom": 13.0, "tec": 8.4, "peg": 2.55, "fpe": 34.0, "rev": 0.166, "eps": 0.218, "roe": 1.4147, "consensus": "Comprar", "nanalysts": 42, "upside": -3.3, "pctBelow": 0.0, "rsi": 70.0, "overbought": true, "inPortfolio": false, "weight": null}, {"rank": 91, "byma": "ABT", "name": "Abbott Labs", "sector": "Salud", "total": 56.0, "val": 21.6, "ana": 20.7, "ear": 5.0, "mom": 3.8, "tec": 4.8, "peg": 1.39, "fpe": 14.7, "rev": 0.078, "eps": -0.197, "roe": 0.1233, "consensus": "Comprar", "nanalysts": 25, "upside": 30.4, "pctBelow": 33.6, "rsi": 47.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 92, "byma": "LMT", "name": "Lockheed Martin", "sector": "Industria", "total": 55.7, "val": 26.4, "ana": 15.9, "ear": 5.0, "mom": 3.9, "tec": 4.5, "peg": 1.11, "fpe": 16.0, "rev": 0.003, "eps": -0.115, "roe": 0.6764, "consensus": "Mantener", "nanalysts": 19, "upside": 18.3, "pctBelow": 23.5, "rsi": 61.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 93, "byma": "PEP", "name": "PepsiCo", "sector": "Consumo", "total": 55.3, "val": 21.6, "ana": 15.5, "ear": 12.8, "mom": 4.0, "tec": 1.4, "peg": 1.48, "fpe": 15.1, "rev": 0.064, "eps": 1.37, "roe": 0.5151, "consensus": "Mantener", "nanalysts": 22, "upside": 15.0, "pctBelow": 19.0, "rsi": 40.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 94, "byma": "BX", "name": "Blackstone", "sector": "Finanzas", "total": 54.9, "val": 21.6, "ana": 14.5, "ear": 9.1, "mom": 6.9, "tec": 2.8, "peg": 1.45, "fpe": 17.1, "rev": 0.057, "eps": 0.039, "roe": 0.2953, "consensus": "Comprar", "nanalysts": 20, "upside": 10.7, "pctBelow": 30.6, "rsi": 76.0, "overbought": true, "inPortfolio": false, "weight": null}, {"rank": 95, "byma": "INTC", "name": "Intel", "sector": "Tecnologia", "total": 54.7, "val": 21.6, "ana": 10.1, "ear": 6.2, "mom": 11.8, "tec": 4.9, "peg": 1.36, "fpe": 64.7, "rev": 0.072, "eps": null, "roe": -0.0291, "consensus": "Mantener", "nanalysts": 41, "upside": 1.4, "pctBelow": 26.9, "rsi": 30.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 96, "byma": "PYPL", "name": "PayPal", "sector": "Finanzas", "total": 54.7, "val": 26.4, "ana": 6.6, "ear": 6.3, "mom": 10.7, "tec": 4.8, "peg": 0.83, "fpe": 9.7, "rev": 0.072, "eps": -0.062, "roe": 0.2512, "consensus": "Mantener", "nanalysts": 34, "upside": -7.5, "pctBelow": 28.4, "rsi": 84.0, "overbought": true, "inPortfolio": false, "weight": null}, {"rank": 97, "byma": "AMGN", "name": "Amgen", "sector": "Salud", "total": 54.4, "val": 15.0, "ana": 10.6, "ear": 9.1, "mom": 9.7, "tec": 10.0, "peg": 1.99, "fpe": 15.3, "rev": 0.058, "eps": 0.044, "roe": 1.0132, "consensus": "Comprar", "nanalysts": 29, "upside": -0.5, "pctBelow": 7.0, "rsi": 57.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 98, "byma": "COIN", "name": "Coinbase", "sector": "Finanzas", "total": 53.9, "val": 21.6, "ana": 19.9, "ear": 5.2, "mom": 2.8, "tec": 4.5, "peg": 1.51, "fpe": 35.2, "rev": -0.308, "eps": null, "roe": 0.0669, "consensus": "Comprar", "nanalysts": 30, "upside": 35.0, "pctBelow": 60.2, "rsi": 63.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 99, "byma": "MRNA", "name": "Moderna", "sector": "Salud", "total": 53.5, "val": 12.0, "ana": 6.4, "ear": 11.2, "mom": 13.8, "tec": 10.0, "peg": null, "fpe": -16.6, "rev": 2.602, "eps": null, "roe": -0.3656, "consensus": "Mantener", "nanalysts": 19, "upside": -29.3, "pctBelow": 16.5, "rsi": 59.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 100, "byma": "CEG", "name": "Constellation Engy", "sector": "Utilities", "total": 52.8, "val": 7.5, "ana": 21.1, "ear": 17.8, "mom": 3.5, "tec": 2.9, "peg": 3.74, "fpe": 19.0, "rev": 0.638, "eps": 10.91, "roe": 0.161, "consensus": "Comprar", "nanalysts": 21, "upside": 38.6, "pctBelow": 35.8, "rsi": 43.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 101, "byma": "PM", "name": "Philip Morris", "sector": "Consumo", "total": 51.8, "val": 7.5, "ana": 15.2, "ear": 8.5, "mom": 10.6, "tec": 10.0, "peg": 2.53, "fpe": 19.9, "rev": 0.091, "eps": -0.093, "roe": null, "consensus": "Comprar", "nanalysts": 14, "upside": 7.7, "pctBelow": 4.9, "rsi": 55.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 102, "byma": "KO", "name": "Coca-Cola", "sector": "Consumo", "total": 51.4, "val": 1.5, "ana": 15.2, "ear": 13.9, "mom": 10.7, "tec": 10.0, "peg": 4.28, "fpe": 23.7, "rev": 0.121, "eps": 0.182, "roe": 0.4337, "consensus": "Comprar", "nanalysts": 24, "upside": 5.3, "pctBelow": 2.1, "rsi": 57.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 103, "byma": "RTX", "name": "RTX Corp", "sector": "Industria", "total": 50.9, "val": 7.5, "ana": 15.0, "ear": 11.4, "mom": 8.6, "tec": 8.3, "peg": 2.68, "fpe": 25.8, "rev": 0.087, "eps": 0.325, "roe": 0.1157, "consensus": "Comprar", "nanalysts": 22, "upside": 9.8, "pctBelow": 7.3, "rsi": 67.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 104, "byma": "SHOP", "name": "Shopify", "sector": "Tecnologia", "total": 50.7, "val": 7.5, "ana": 18.3, "ear": 11.6, "mom": 6.9, "tec": 6.4, "peg": 2.57, "fpe": 53.0, "rev": 0.343, "eps": null, "roe": 0.1131, "consensus": "Comprar", "nanalysts": 45, "upside": 20.5, "pctBelow": 31.0, "rsi": 63.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 105, "byma": "PAAS", "name": "Pan American Silver", "sector": "Mineria", "total": 50.6, "val": 1.5, "ana": 22.8, "ear": 20.0, "mom": 1.7, "tec": 4.6, "peg": 7.02, "fpe": 8.9, "rev": 0.493, "eps": 1.316, "roe": 0.208, "consensus": "Comprar", "nanalysts": 8, "upside": 59.8, "pctBelow": 36.2, "rsi": 47.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 106, "byma": "HD", "name": "Home Depot", "sector": "Consumo", "total": 50.6, "val": 15.0, "ana": 14.8, "ear": 6.3, "mom": 8.1, "tec": 6.4, "peg": 1.94, "fpe": 21.2, "rev": 0.048, "eps": -0.043, "roe": 1.2838, "consensus": "Comprar", "nanalysts": 32, "upside": 8.5, "pctBelow": 17.7, "rsi": 49.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 107, "byma": "BAYN", "name": "Bayer", "sector": "Europa", "total": 49.9, "val": 1.5, "ana": 17.8, "ear": 9.4, "mom": 12.7, "tec": 8.4, "peg": 4.65, "fpe": 10.1, "rev": -0.024, "eps": 1.129, "roe": -0.0693, "consensus": "Comprar", "nanalysts": 18, "upside": 11.8, "pctBelow": 7.9, "rsi": 72.0, "overbought": true, "inPortfolio": false, "weight": null}, {"rank": 108, "byma": "GFI", "name": "Gold Fields", "sector": "Mineria", "total": 49.2, "val": 1.5, "ana": 22.2, "ear": 20.0, "mom": 1.0, "tec": 4.5, "peg": 11.59, "fpe": 5.9, "rev": 0.714, "eps": 1.961, "roe": 0.5193, "consensus": "Comprar", "nanalysts": 8, "upside": 64.2, "pctBelow": 44.8, "rsi": 56.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 109, "byma": "UNP", "name": "Union Pacific", "sector": "Industria", "total": 49.0, "val": 7.5, "ana": 12.5, "ear": 10.1, "mom": 12.6, "tec": 6.4, "peg": 3.49, "fpe": 20.8, "rev": 0.032, "eps": 0.062, "roe": 0.4069, "consensus": "Comprar", "nanalysts": 23, "upside": 4.0, "pctBelow": 0.3, "rsi": 90.0, "overbought": true, "inPortfolio": false, "weight": null}, {"rank": 110, "byma": "DISN", "name": "Walt Disney", "sector": "Consumo", "total": 48.1, "val": 15.0, "ana": 21.2, "ear": 5.0, "mom": 5.5, "tec": 1.4, "peg": 2.22, "fpe": 13.0, "rev": 0.065, "eps": -0.298, "roe": 0.1101, "consensus": "Compra fuerte", "nanalysts": 30, "upside": 32.2, "pctBelow": 19.8, "rsi": 40.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 111, "byma": "AEM", "name": "Agnico Eagle", "sector": "Mineria", "total": 46.6, "val": 1.5, "ana": 22.7, "ear": 20.0, "mom": 1.0, "tec": 1.4, "peg": 28.15, "fpe": 10.7, "rev": 0.661, "eps": 1.086, "roe": 0.223, "consensus": "Comprar", "nanalysts": 14, "upside": 64.4, "pctBelow": 43.5, "rsi": 33.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 112, "byma": "RKLB", "name": "Rocket Lab", "sector": "Industria", "total": 46.3, "val": 0.9, "ana": 23.4, "ear": 11.2, "mom": 6.2, "tec": 4.6, "peg": null, "fpe": 2540.0, "rev": 0.635, "eps": null, "roe": -0.1355, "consensus": "Comprar", "nanalysts": 14, "upside": 53.0, "pctBelow": 49.3, "rsi": 42.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 113, "byma": "GE", "name": "GE Aerospace", "sector": "Industria", "total": 45.4, "val": 1.5, "ana": 13.3, "ear": 11.0, "mom": 11.2, "tec": 8.4, "peg": 8.51, "fpe": 41.3, "rev": 0.247, "eps": -0.018, "roe": 0.4543, "consensus": "Compra fuerte", "nanalysts": 21, "upside": 4.3, "pctBelow": 4.8, "rsi": 46.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 114, "byma": "MRK", "name": "Merck", "sector": "Salud", "total": 45.4, "val": 1.5, "ana": 15.0, "ear": 8.0, "mom": 10.8, "tec": 10.0, "peg": 6.1, "fpe": 12.8, "rev": 0.049, "eps": null, "roe": 0.1894, "consensus": "Comprar", "nanalysts": 27, "upside": 7.4, "pctBelow": 4.6, "rsi": 54.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 115, "byma": "MSTR", "name": "MicroStrategy", "sector": "IA/Semis", "total": 44.9, "val": 7.5, "ana": 24.2, "ear": 8.2, "mom": 0.5, "tec": 4.5, "peg": 2.85, "fpe": 21.8, "rev": 0.119, "eps": null, "roe": -0.3076, "consensus": "Compra fuerte", "nanalysts": 14, "upside": 211.5, "pctBelow": 78.6, "rsi": 53.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 116, "byma": "ASTS", "name": "AST SpaceMobile", "sector": "Industria", "total": 44.6, "val": 12.0, "ana": 14.0, "ear": 11.2, "mom": 1.2, "tec": 6.2, "peg": null, "fpe": -323.1, "rev": 19.522, "eps": null, "roe": -0.3775, "consensus": null, "nanalysts": 9, "upside": 22.9, "pctBelow": 50.2, "rsi": 48.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 117, "byma": "BIOX", "name": "Bioceres Crop", "sector": "LatAm", "total": 44.6, "val": 26.4, "ana": 10.0, "ear": 3.4, "mom": 0.3, "tec": 4.5, "peg": 1.04, "fpe": 0.5, "rev": -0.359, "eps": null, "roe": -0.3222, "consensus": null, "nanalysts": null, "upside": null, "pctBelow": 91.0, "rsi": 52.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 118, "byma": "CRWD", "name": "CrowdStrike", "sector": "Tecnologia", "total": 44.4, "val": 1.5, "ana": 10.0, "ear": 9.8, "mom": 14.7, "tec": 8.4, "peg": 6.09, "fpe": 132.4, "rev": 0.256, "eps": null, "roe": -0.0025, "consensus": "Comprar", "nanalysts": 49, "upside": -10.9, "pctBelow": 1.9, "rsi": 73.0, "overbought": true, "inPortfolio": false, "weight": null}, {"rank": 119, "byma": "PETR3", "name": "Petrobras (B3)", "sector": "Energia", "total": 44.3, "val": 1.5, "ana": 18.8, "ear": 7.5, "mom": 8.4, "tec": 8.1, "peg": 4.27, "fpe": 3.1, "rev": 0.004, "eps": -0.072, "roe": 0.256, "consensus": "Compra fuerte", "nanalysts": 7, "upside": 23.9, "pctBelow": 15.6, "rsi": 67.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 120, "byma": "IBM", "name": "IBM", "sector": "Tecnologia", "total": 44.0, "val": 7.5, "ana": 22.3, "ear": 11.0, "mom": 1.9, "tec": 1.4, "peg": 2.71, "fpe": 15.8, "rev": 0.095, "eps": 0.142, "roe": 0.3577, "consensus": "Comprar", "nanalysts": 23, "upside": 40.2, "pctBelow": 35.9, "rsi": 33.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 121, "byma": "PBR", "name": "Petrobras (ADR)", "sector": "Energia", "total": 43.5, "val": 1.5, "ana": 20.3, "ear": 7.5, "mom": 7.7, "tec": 6.5, "peg": 4.33, "fpe": 4.3, "rev": 0.004, "eps": -0.072, "roe": 0.256, "consensus": "Comprar", "nanalysts": 13, "upside": 27.7, "pctBelow": 18.3, "rsi": 73.0, "overbought": true, "inPortfolio": false, "weight": null}, {"rank": 122, "byma": "FCX", "name": "Freeport-McMoRan", "sector": "Mineria", "total": 43.4, "val": 1.5, "ana": 18.2, "ear": 12.8, "mom": 4.3, "tec": 6.5, "peg": 4.14, "fpe": 15.1, "rev": 0.088, "eps": 1.531, "roe": 0.1563, "consensus": "Comprar", "nanalysts": 22, "upside": 16.1, "pctBelow": 15.0, "rsi": 48.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 123, "byma": "JNJ", "name": "Johnson & Johnson", "sector": "Salud", "total": 42.9, "val": 1.5, "ana": 14.6, "ear": 6.2, "mom": 10.5, "tec": 10.0, "peg": 4.88, "fpe": 19.4, "rev": 0.099, "eps": -0.529, "roe": 0.2642, "consensus": "Comprar", "nanalysts": 22, "upside": 6.2, "pctBelow": 7.6, "rsi": 55.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 124, "byma": "COST", "name": "Costco", "sector": "Consumo", "total": 42.5, "val": 1.5, "ana": 17.4, "ear": 15.4, "mom": 5.2, "tec": 3.0, "peg": 4.47, "fpe": 40.5, "rev": 0.215, "eps": 0.455, "roe": 0.2915, "consensus": "Comprar", "nanalysts": 34, "upside": 17.6, "pctBelow": 16.2, "rsi": 36.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 125, "byma": "BHP", "name": "BHP Group", "sector": "Mineria", "total": 42.2, "val": 1.5, "ana": 6.3, "ear": 14.5, "mom": 9.9, "tec": 10.0, "peg": 5.95, "fpe": 16.8, "rev": 0.108, "eps": 0.275, "roe": 0.2471, "consensus": "Mantener", "nanalysts": 7, "upside": -13.8, "pctBelow": 8.2, "rsi": 63.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 126, "byma": "UBER", "name": "Uber", "sector": "Consumo", "total": 41.5, "val": 1.5, "ana": 23.6, "ear": 8.1, "mom": 5.3, "tec": 2.9, "peg": 6.05, "fpe": 16.4, "rev": 0.145, "eps": -0.846, "roe": 0.3531, "consensus": "Compra fuerte", "nanalysts": 50, "upside": 43.8, "pctBelow": 27.4, "rsi": 47.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 127, "byma": "MCD", "name": "McDonald's", "sector": "Consumo", "total": 40.9, "val": 7.5, "ana": 17.0, "ear": 10.1, "mom": 3.3, "tec": 2.9, "peg": 2.52, "fpe": 18.7, "rev": 0.094, "eps": 0.069, "roe": null, "consensus": "Comprar", "nanalysts": 31, "upside": 24.1, "pctBelow": 21.4, "rsi": 42.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 128, "byma": "TGT", "name": "Target", "sector": "Consumo", "total": 40.5, "val": 7.5, "ana": 8.5, "ear": 4.0, "mom": 12.1, "tec": 8.4, "peg": 2.51, "fpe": 15.5, "rev": 0.067, "eps": -0.247, "roe": 0.2202, "consensus": null, "nanalysts": 34, "upside": -3.3, "pctBelow": 2.1, "rsi": 45.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 129, "byma": "PG", "name": "Procter & Gamble", "sector": "Consumo", "total": 40.4, "val": 1.5, "ana": 14.5, "ear": 9.1, "mom": 8.5, "tec": 6.8, "peg": 4.13, "fpe": 21.0, "rev": 0.074, "eps": 0.058, "roe": 0.3111, "consensus": "Comprar", "nanalysts": 23, "upside": 10.4, "pctBelow": 10.8, "rsi": 43.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 130, "byma": "RIO", "name": "Rio Tinto", "sector": "Mineria", "total": 39.6, "val": 1.5, "ana": 14.0, "ear": 9.4, "mom": 6.6, "tec": 8.1, "peg": 5.69, "fpe": 10.6, "rev": 0.146, "eps": -0.056, "roe": 0.164, "consensus": "Comprar", "nanalysts": 8, "upside": 12.8, "pctBelow": 16.4, "rsi": 49.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 131, "byma": "BA", "name": "Boeing", "sector": "Industria", "total": 39.5, "val": 1.5, "ana": 18.4, "ear": 9.0, "mom": 6.0, "tec": 4.6, "peg": 24.08, "fpe": 53.3, "rev": 0.14, "eps": null, "roe": 1.6995, "consensus": "Comprar", "nanalysts": 25, "upside": 24.0, "pctBelow": 13.5, "rsi": 48.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 132, "byma": "PFE", "name": "Pfizer", "sector": "Salud", "total": 38.6, "val": 7.5, "ana": 16.1, "ear": 5.0, "mom": 5.5, "tec": 4.5, "peg": 2.83, "fpe": 8.8, "rev": 0.054, "eps": -0.101, "roe": 0.0831, "consensus": "Comprar", "nanalysts": 26, "upside": 16.0, "pctBelow": 11.6, "rsi": 59.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 133, "byma": "GSK", "name": "GSK", "sector": "Europa", "total": 37.5, "val": 1.5, "ana": 11.4, "ear": 9.1, "mom": 5.5, "tec": 10.0, "peg": 19.92, "fpe": 10.0, "rev": 0.015, "eps": 0.084, "roe": 0.4091, "consensus": "Mantener", "nanalysts": 7, "upside": 10.3, "pctBelow": 14.5, "rsi": 52.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 134, "byma": "WMT", "name": "Walmart", "sector": "Consumo", "total": 36.2, "val": 1.5, "ana": 18.7, "ear": 8.8, "mom": 4.3, "tec": 3.0, "peg": 4.33, "fpe": 34.2, "rev": 0.073, "eps": 0.194, "roe": 0.2413, "consensus": "Comprar", "nanalysts": 41, "upside": 23.2, "pctBelow": 16.1, "rsi": 36.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 135, "byma": "TSLA", "name": "Tesla", "sector": "Consumo", "total": 35.1, "val": 1.5, "ana": 13.6, "ear": 8.8, "mom": 6.7, "tec": 4.5, "peg": 5.11, "fpe": 154.4, "rev": 0.158, "eps": 0.083, "roe": 0.049, "consensus": "Comprar", "nanalysts": 40, "upside": 7.8, "pctBelow": 19.5, "rsi": 56.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 136, "byma": "NVS", "name": "Novartis", "sector": "Salud", "total": 33.6, "val": 1.5, "ana": 9.5, "ear": 5.9, "mom": 8.3, "tec": 8.4, "peg": 4.15, "fpe": 15.5, "rev": -0.007, "eps": -0.093, "roe": 0.3493, "consensus": "Mantener", "nanalysts": 10, "upside": 2.5, "pctBelow": 7.8, "rsi": 46.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 137, "byma": "AI", "name": "C3.AI", "sector": "IA/Semis", "total": 30.6, "val": 12.0, "ana": 8.5, "ear": 3.4, "mom": 3.8, "tec": 2.9, "peg": null, "fpe": -20.3, "rev": -0.525, "eps": null, "roe": -0.6305, "consensus": null, "nanalysts": 11, "upside": -3.5, "pctBelow": 68.7, "rsi": 47.0, "overbought": false, "inPortfolio": false, "weight": null}, {"rank": 138, "byma": "HON", "name": "Honeywell", "sector": "Industria", "total": 29.4, "val": 1.5, "ana": 14.6, "ear": 5.0, "mom": 5.3, "tec": 3.0, "peg": 8.3, "fpe": 22.8, "rev": 0.024, "eps": -0.419, "roe": 0.2426, "consensus": "Comprar", "nanalysts": 16, "upside": 10.5, "pctBelow": 13.9, "rsi": 36.0, "overbought": false, "inPortfolio": false, "weight": null}], "portfolio": [{"byma": "NVDA", "name": "Nvidia", "sector": "Tecnologia", "weight": 10.29, "total": 93.9}, {"byma": "MU", "name": "Micron Technology", "sector": "Tecnologia", "weight": 9.47, "total": 92.5}, {"byma": "AVGO", "name": "Broadcom", "sector": "Tecnologia", "weight": 7.37, "total": 88.3}, {"byma": "ADI", "name": "Analog Devices", "sector": "Tecnologia", "weight": 6.26, "total": 85.6}, {"byma": "VIST", "name": "Vista Energy", "sector": "LatAm", "weight": 6.23, "total": 85.5}, {"byma": "BA.C", "name": "Bank of America", "sector": "Finanzas", "weight": 4.83, "total": 81.3}, {"byma": "META", "name": "Meta Platforms", "sector": "Tecnologia", "weight": 4.69, "total": 80.8}, {"byma": "C", "name": "Citigroup", "sector": "Finanzas", "weight": 4.5, "total": 80.1}, {"byma": "HWM", "name": "Howmet Aerospace", "sector": "Industria", "weight": 4.42, "total": 79.8}, {"byma": "CRM", "name": "Salesforce", "sector": "Tecnologia", "weight": 4.15, "total": 78.8}, {"byma": "TEAM", "name": "Atlassian", "sector": "Tecnologia", "weight": 4.13, "total": 78.7}, {"byma": "BKNG", "name": "Booking Holdings", "sector": "Finanzas", "weight": 4.1, "total": 78.5}, {"byma": "NBIS", "name": "Nebius Group", "sector": "IA/Semis", "weight": 4.01, "total": 78.2}, {"byma": "LLY", "name": "Eli Lilly", "sector": "Salud", "weight": 3.98, "total": 78.1}, {"byma": "TSM", "name": "TSMC", "sector": "Tecnologia", "weight": 3.84, "total": 77.5}, {"byma": "GOOGL", "name": "Alphabet", "sector": "Tecnologia", "weight": 3.74, "total": 77.0}, {"byma": "MSFT", "name": "Microsoft", "sector": "Tecnologia", "weight": 3.59, "total": 76.3}, {"byma": "AMAT", "name": "Applied Materials", "sector": "Tecnologia", "weight": 3.54, "total": 76.1}, {"byma": "AMD", "name": "AMD", "sector": "Tecnologia", "weight": 3.48, "total": 75.8}, {"byma": "KGC", "name": "Kinross Gold", "sector": "Mineria", "weight": 3.38, "total": 75.3}]};
+const SC = DATA.sectorColors || {};
+const F = DATA.factors;
+const scColor = s => SC[s] || "#9aa3b2";
+const root = document.documentElement;
+const tip = document.getElementById('tip');
+function showTip(html,e){tip.innerHTML=html;tip.style.display='block';tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY+14)+'px';}
+function hideTip(){tip.style.display='none';}
+const esc = s => (''+s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+const fmt = {
+  n1:v=>v==null?'—':(+v).toFixed(1),
+  n2:v=>v==null?'—':(+v).toFixed(2),
+  n0:v=>v==null?'—':(''+Math.round(v)),
+  pdec:v=>v==null?'—':(v*100).toFixed(1)+'%',
+  praw:v=>v==null?'—':(+v).toFixed(1)+'%',
+};
+
+/* ---------- header + stats ---------- */
+document.getElementById('subMeth').textContent = DATA.methodology;
+document.getElementById('subDate').textContent = 'Generado: ' + (DATA.generatedAt||'').replace('T',' ');
+(function stats(){
+  const pf = DATA.rows.filter(r=>r.inPortfolio);
+  const top = DATA.rows[0]||{};
+  const ob = pf.filter(r=>r.overbought).length;
+  const pb = pf.filter(r=>r.pctBelow!=null && r.pctBelow>=5 && r.pctBelow<=25).length;
+  const cards = [
+    ['Analizados', DATA.analyzed],
+    ['En cartera', DATA.nPortfolio],
+    ['Top score', (top.total!=null?top.total.toFixed(1):'—')+' <small>'+esc(top.byma||'')+'</small>'],
+    ['En pullback <small>(cartera)</small>', pb],
+    ['Sobrecomprados <small>(cartera)</small>', ob],
+  ];
+  document.getElementById('stats').innerHTML = cards.map(c=>
+    '<div class="stat"><div class="k">'+c[0]+'</div><div class="v num">'+c[1]+'</div></div>').join('');
+})();
+
+/* ---------- leaderboard ---------- */
+(function leaderboard(){
+  document.getElementById('lbLegend').innerHTML = F.map(f=>
+    '<span class="li"><span class="dot" style="background:'+f.color+'"></span>'+esc(f.label)+' <span class="num" style="color:var(--muted)">('+f.max+')</span></span>').join('');
+  const top = DATA.rows.slice(0,20);
+  document.getElementById('lbRows').innerHTML = top.map(r=>{
+    const segs = F.map(f=>{
+      const v = r[f.key]||0;
+      return '<div class="lb-seg" style="width:'+v+'%;background:'+f.color+'" '+
+        'data-tip="<b>'+esc(f.label)+'</b><br><span class=r>'+esc(r.byma)+' &middot; '+v.toFixed(1)+' / '+f.max+' pts</span>"></div>';
+    }).join('');
+    return '<div class="lb-row">'+
+      '<div class="lb-rank num">'+r.rank+'</div>'+
+      '<div class="lb-tk">'+esc(r.byma)+'</div>'+
+      '<div class="lb-nm"><span class="dot round" style="background:'+scColor(r.sector)+'"></span>'+esc(r.name)+'</div>'+
+      '<div class="lb-bar">'+segs+'</div>'+
+      '<div class="lb-total num">'+ (r.total!=null?r.total.toFixed(1):'—') +'</div>'+
+    '</div>';
+  }).join('');
+  document.querySelectorAll('#lbRows .lb-seg').forEach(el=>{
+    el.addEventListener('mousemove',e=>showTip(el.dataset.tip,e));
+    el.addEventListener('mouseleave',hideTip);
+  });
+})();
+
+/* ---------- portfolio: donut + list ---------- */
+(function portfolio(){
+  const pf = DATA.portfolio;
+  const cx=120,cy=120,rO=104,rI=64;
+  const polar=(r,a)=>{const t=(a-90)*Math.PI/180;return [cx+r*Math.cos(t),cy+r*Math.sin(t)];};
+  const seg=(a0,a1)=>{const lg=(a1-a0)>180?1:0;const[x0,y0]=polar(rO,a0),[x1,y1]=polar(rO,a1),
+    [x2,y2]=polar(rI,a1),[x3,y3]=polar(rI,a0);
+    return `M${x0} ${y0} A${rO} ${rO} 0 ${lg} 1 ${x1} ${y1} L${x2} ${y2} A${rI} ${rI} 0 ${lg} 0 ${x3} ${y3} Z`;};
+  let ang=0,paths='';
+  pf.forEach(p=>{const a0=ang,a1=ang+p.weight/100*360;ang=a1;
+    paths+='<path d="'+seg(a0,a1)+'" fill="'+scColor(p.sector)+'" stroke="var(--surface)" stroke-width="2" '+
+      'data-tip="<b>'+esc(p.byma)+'</b> '+esc(p.name)+'<br><span class=r>'+p.weight.toFixed(1)+'% &middot; '+esc(p.sector)+' &middot; score '+(p.total!=null?p.total.toFixed(1):'—')+'</span>"></path>';});
+  document.getElementById('donut').innerHTML =
+    '<svg viewBox="0 0 240 240" width="240" height="240" role="img">'+paths+
+    '<text x="120" y="114" text-anchor="middle" style="font-size:30px;font-weight:700;fill:var(--ink)">'+DATA.nPortfolio+'</text>'+
+    '<text x="120" y="134" text-anchor="middle" style="font-size:12px;fill:var(--muted)">posiciones</text></svg>';
+
+  const secs=[...new Set(pf.map(p=>p.sector))];
+  document.getElementById('pfLegend').innerHTML = secs.map(s=>
+    '<span class="li"><span class="dot round" style="background:'+scColor(s)+'"></span>'+esc(s)+'</span>').join('');
+
+  const maxW=Math.max.apply(null,pf.map(p=>p.weight));
+  document.getElementById('pfList').innerHTML = pf.map((p,i)=>
+    '<div class="pf-item">'+
+      '<span class="num" style="color:var(--muted)">'+(i+1)+'</span>'+
+      '<span style="font-weight:650">'+esc(p.byma)+'</span>'+
+      '<span style="color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.name)+'</span>'+
+      '<span class="wbar"><i style="width:'+(p.weight/maxW*100)+'%;background:'+scColor(p.sector)+'"></i></span>'+
+      '<span class="num" style="font-weight:650;text-align:right">'+p.weight.toFixed(1)+'%</span>'+
+    '</div>').join('');
+  document.querySelectorAll('#donut path').forEach(el=>{
+    el.addEventListener('mousemove',e=>showTip(el.dataset.tip,e));
+    el.addEventListener('mouseleave',hideTip);
+  });
+})();
+
+/* ---------- fundamentals table ---------- */
+const COLS=[
+  {k:'inPortfolio',t:'',ty:'star',s:false},
+  {k:'byma',t:'BYMA',ty:'txt'},
+  {k:'name',t:'Empresa',ty:'txt'},
+  {k:'sector',t:'Sector',ty:'sec'},
+  {k:'total',t:'Score',ty:'n1'},
+  {k:'peg',t:'PEG',ty:'n2'},
+  {k:'fpe',t:'F-P/E',ty:'n1'},
+  {k:'rev',t:'Rev%',ty:'pdec'},
+  {k:'eps',t:'EPS%',ty:'pdec'},
+  {k:'roe',t:'ROE%',ty:'pdec'},
+  {k:'consensus',t:'Consenso',ty:'txt'},
+  {k:'upside',t:'Upside%',ty:'praw'},
+  {k:'pctBelow',t:'% < Max',ty:'pbelow'},
+  {k:'rsi',t:'RSI',ty:'rsi'},
+];
+let sortK='total', sortD=-1, query='';
+function headRow(){
+  return '<tr>'+COLS.map(c=>{
+    const l=(c.ty==='txt'||c.ty==='sec')?' l':'';
+    const ar=(c.k===sortK)?'<span class="ar">'+(sortD<0?'▼':'▲')+'</span>':'';
+    return '<th class="'+l.trim()+'" data-k="'+c.k+'" data-ty="'+c.ty+'" '+(c.s===false?'style="cursor:default"':'')+'>'+c.t+ar+'</th>';
+  }).join('')+'</tr>';
+}
+function cell(r,c){
+  const v=r[c.k];
+  if(c.ty==='star') return '<td>'+(v?'<span class="star" title="En cartera">★</span>':'')+'</td>';
+  if(c.ty==='txt') return '<td class="l">'+(v==null?'—':esc(v))+'</td>';
+  if(c.ty==='sec') return '<td class="l"><span class="sctag"><span class="dot round" style="background:'+scColor(v)+'"></span>'+esc(v)+'</span></td>';
+  if(c.ty==='pbelow'){
+    if(v==null) return '<td class="num">—</td>';
+    let cl=''; if(v<=3)cl='cell-warn'; else if(v>=5&&v<=25)cl='cell-good';
+    return '<td class="num"><span class="'+cl+'" style="padding:2px 6px">'+v.toFixed(1)+'%</span></td>';
+  }
+  if(c.ty==='rsi'){
+    if(v==null) return '<td class="num">—</td>';
+    const cl=r.overbought?'cell-bad':'';
+    return '<td class="num"><span class="'+cl+'" style="padding:2px 6px">'+Math.round(v)+'</span></td>';
+  }
+  return '<td class="num">'+fmt[c.ty](v)+'</td>';
+}
+function cmp(a,b){
+  let x=a[sortK],y=b[sortK];
+  const na=(x==null||x===''),nb=(y==null||y==='');
+  if(na&&nb)return 0; if(na)return 1; if(nb)return -1;
+  if(typeof x==='string'){x=x.toLowerCase();y=(''+y).toLowerCase();return sortD*(x<y?-1:x>y?1:0);}
+  return sortD*(x-y);
+}
+function renderTable(){
+  document.querySelector('#tbl thead').innerHTML=headRow();
+  let rows=DATA.rows;
+  if(query){const q=query.toLowerCase();
+    rows=rows.filter(r=>(r.byma&&r.byma.toLowerCase().includes(q))||(r.name&&r.name.toLowerCase().includes(q)));}
+  rows=rows.slice().sort(cmp);
+  document.querySelector('#tbl tbody').innerHTML=rows.map(r=>
+    '<tr class="'+(r.inPortfolio?'pf':'')+'">'+COLS.map(c=>cell(r,c)).join('')+'</tr>').join('');
+  document.getElementById('tbCount').textContent=rows.length+' de '+DATA.rows.length+' tickers';
+  document.querySelectorAll('#tbl thead th').forEach(th=>{
+    if(th.dataset.k==='inPortfolio')return;
+    th.onclick=()=>{const k=th.dataset.k;
+      if(k===sortK)sortD=-sortD;
+      else{sortK=k;sortD=(th.dataset.ty==='txt'||th.dataset.ty==='sec')?1:-1;}
+      renderTable();};
+  });
+}
+document.getElementById('search').addEventListener('input',e=>{query=e.target.value;renderTable();});
+renderTable();
+
+/* ---------- bubble map ---------- */
+(function bubble(){
+  const pts=DATA.rows.filter(r=>r.inPortfolio && r.val!=null && r.ana!=null);
+  const W=760,H=470,m={l:58,r:24,t:18,b:48};
+  const xs=pts.map(p=>p.val),ys=pts.map(p=>p.ana),ts=pts.map(p=>p.total||0);
+  const pad=(a,f)=>{const lo=Math.min.apply(null,a),hi=Math.max.apply(null,a),d=(hi-lo)||1;return [lo-d*f,hi+d*f];};
+  const[x0,x1]=pad(xs,.18),[y0,y1]=pad(ys,.18),tMin=Math.min.apply(null,ts),tMax=Math.max.apply(null,ts);
+  const sx=v=>m.l+(v-x0)/(x1-x0)*(W-m.l-m.r);
+  const sy=v=>H-m.b-(v-y0)/(y1-y0)*(H-m.t-m.b);
+  const sr=v=>8+(tMax>tMin?(v-tMin)/(tMax-tMin):.5)*20;
+  const ticks=(lo,hi,n)=>{const st=(hi-lo)/n,out=[];for(let i=0;i<=n;i++)out.push(lo+st*i);return out;};
+  let g='';
+  ticks(x0,x1,5).forEach(t=>{const x=sx(t);g+='<line class="bx-grid" x1="'+x+'" y1="'+m.t+'" x2="'+x+'" y2="'+(H-m.b)+'"></line>'+
+    '<text class="bx-lab" x="'+x+'" y="'+(H-m.b+16)+'" text-anchor="middle">'+t.toFixed(0)+'</text>';});
+  ticks(y0,y1,5).forEach(t=>{const y=sy(t);g+='<line class="bx-grid" x1="'+m.l+'" y1="'+y+'" x2="'+(W-m.r)+'" y2="'+y+'"></line>'+
+    '<text class="bx-lab" x="'+(m.l-8)+'" y="'+(y+3)+'" text-anchor="end">'+t.toFixed(0)+'</text>';});
+  g+='<line class="bx-axis" x1="'+m.l+'" y1="'+(H-m.b)+'" x2="'+(W-m.r)+'" y2="'+(H-m.b)+'"></line>';
+  g+='<line class="bx-axis" x1="'+m.l+'" y1="'+m.t+'" x2="'+m.l+'" y2="'+(H-m.b)+'"></line>';
+  g+='<text class="bx-lab" x='+((m.l+W-m.r)/2)+' y='+(H-8)+' text-anchor="middle">Score Valuacion / Crecimiento (max 30)</text>';
+  g+='<text class="bx-lab" transform="translate(15,'+((m.t+H-m.b)/2)+') rotate(-90)" text-anchor="middle">Score Analistas (max 25)</text>';
+  let circ='';
+  pts.forEach(p=>{const x=sx(p.val),y=sy(p.ana),r=sr(p.total||0);
+    circ+='<circle cx='+x+' cy='+y+' r='+r+' fill="'+scColor(p.sector)+'" fill-opacity=".82" stroke="var(--surface)" stroke-width="2" '+
+      'data-tip="<b>'+esc(p.byma)+'</b> '+esc(p.name)+'<br><span class=r>Val '+p.val.toFixed(1)+' &middot; Ana '+p.ana.toFixed(1)+' &middot; score '+(p.total!=null?p.total.toFixed(1):'—')+'</span>"></circle>'+
+      '<text class="bx-tk" x='+x+' y='+(y+3)+' text-anchor="middle">'+esc(p.byma)+'</text>';});
+  document.getElementById('bubble').innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="max-width:'+W+'px">'+g+circ+'</svg>';
+  const secs=[...new Set(pts.map(p=>p.sector))];
+  document.getElementById('mpLegend').innerHTML=secs.map(s=>
+    '<span class="li"><span class="dot round" style="background:'+scColor(s)+'"></span>'+esc(s)+'</span>').join('');
+  document.querySelectorAll('#bubble circle').forEach(el=>{
+    el.addEventListener('mousemove',e=>showTip(el.dataset.tip,e));
+    el.addEventListener('mouseleave',hideTip);
+  });
+})();
+
+/* ---------- tabs + theme ---------- */
+document.getElementById('tabs').addEventListener('click',e=>{
+  const b=e.target.closest('.tab'); if(!b)return;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t===b));
+  document.querySelectorAll('.panel').forEach(p=>p.hidden=(p.id!=='p-'+b.dataset.p));
+});
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  const dark=matchMedia('(prefers-color-scheme: dark)').matches;
+  const cur=root.classList.contains('dark')||(dark&&!root.classList.contains('light'));
+  root.classList.remove('dark','light');
+  root.classList.add(cur?'light':'dark');
+});
+</script>
+</body>
+</html>
