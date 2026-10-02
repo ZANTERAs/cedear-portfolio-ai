@@ -28,9 +28,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 warnings.filterwarnings("ignore")
 
-if sys.platform == "win32":
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
-
 import numpy as np
 import pandas as pd
 import yfinance as yf
@@ -1348,6 +1345,10 @@ def generate_html_dashboard(scores_df: pd.DataFrame, weights: dict,
 
 # ── MAIN ──────────────────────────────────────────────────────────────────────
 def main():
+    # Sólo al correr como script: reemplazar stdout al importar rompería al proceso que importa.
+    if sys.platform == "win32":
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+
     sep = "=" * 72
     print(sep)
     print("  CEDEAR Heat Finder  -  Analisis Fundamental Mid-Short Term")
